@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Exam Security System - University of Zambia (UNZA) - Final Year Project - Automated detection system for exam security">
+    <link rel="icon" type="image/png" href="/client/public/assets/images/unza-logo.png">
+    <title>UNZA Exam Security System</title>
+    
+    <!-- Additional recommended meta tags -->
+    <meta name="theme-color" content="#1976d2">
+    <meta name="msapplication-TileColor" content="#1976d2">
+    <meta name="apple-mobile-web-app-status-bar-style" content="#1976d2">
+    <meta name="author" content="UNZA Final Year Project Team">
+    
+    <!-- Preconnect to backend API -->
+    <link rel="preconnect" href="https://api.examsecurity.unza.zm">
+    <link rel="stylesheet" href="/client/src/styles/GlobalStyles.js">
+  </head>
+  <body>
+    <div id="root">
+      <div class="loading-overlay hidden">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+    
+    <!-- React entry point -->
+    <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- Fallback for non-JS browsers -->
+    <noscript>
+      <style>
+        .loading-overlay { display: none !important; }
+        #root { padding: 2rem; }
+      </style>
+      <h1>JavaScript Required</h1>
+      <p>This exam security system requires JavaScript to function properly. Please enable JavaScript in your browser settings.</p>
+    </noscript>
+  </body>
+</html>
