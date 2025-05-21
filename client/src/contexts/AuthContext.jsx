@@ -83,32 +83,32 @@ export const AuthProvider = ({ children }) => {
   }, [navigate, location]);
 
   const login = async (email, password) => {
-    try {
-      setLoading(true);
-      const response = await loginApi(email, password);
+  try {
+    setLoading(true);
+    const response = await loginApi(email, password);
 
-      localStorage.setItem("token", response.data.token);
-      setUser(response.data.user);
-      setError(null);
+    localStorage.setItem("token", response.data.token);
+    setUser(response.data.user);
+    setError(null);
 
-      return {
-        success: true,
-        user: response.data.user,
-      };
-    } catch (err) {
-      const errorMsg =
-        err.response?.data?.message ||
-        "Login failed. Please check your credentials.";
-      setError(errorMsg);
+    return {
+      success: true,
+      user: response.data.user,
+    };
+  } catch (err) {
+    const errorMsg =
+      err.response?.data?.message ||
+      "Login failed. Please check your credentials.";
+    setError(errorMsg);
 
-      return {
-        success: false,
-        error: errorMsg,
-      };
-    } finally {
-      setLoading(false);
-    }
-  };
+    return {
+      success: false,
+      error: errorMsg,
+    };
+  } finally {
+    setLoading(false);
+  }
+};
 
   const logout = (options = {}) => {
     localStorage.removeItem("token");
