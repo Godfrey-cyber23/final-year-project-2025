@@ -1,5 +1,7 @@
 import { Drawer, List, ListItem, ListItemIcon, ListItemText } from '@mui/material';
 import { Dashboard, Settings, Warning } from '@mui/icons-material';
+import Toolbar from '@mui/material/Toolbar';
+
 
 const Sidebar = () => {
   return (

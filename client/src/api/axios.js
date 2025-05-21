@@ -26,7 +26,7 @@ api.interceptors.request.use(
     // Cancel duplicate requests
     if (config.method === 'get') {
       config.cancelToken = new axios.CancelToken((cancel) => {
-        const requestKey = `${config.url}-${JSON.stringify(config.params)}`;
+        const requestKey = `${config.url}-${JSON.stringify(config.params ?? {})}`;
         if (pendingRequests.has(requestKey)) {
           cancel(`Duplicate request cancelled: ${requestKey}`);
         } else {
@@ -47,7 +47,7 @@ api.interceptors.response.use(
   (response) => {
     // Clean up request tracking
     if (response.config.method === 'get') {
-      const requestKey = `${response.config.url}-${JSON.stringify(response.config.params)}`;
+      const requestKey = `${response.config.url}-${JSON.stringify(response.config.params ?? {})}`;
       pendingRequests.delete(requestKey);
     }
 

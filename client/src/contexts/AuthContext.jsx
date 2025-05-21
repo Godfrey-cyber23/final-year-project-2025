@@ -1,15 +1,19 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { login as loginApi, getCurrentUser } from "../api/auth";
+import { 
+  loginLecturer as loginLecturerApi,
+  getCurrentLecturer
+} from "../api/auth";
 import LoadingSpinner from "../components/common/LoadingSpinner";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [lecturer, setLecturer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [initialized, setInitialized] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -18,20 +22,24 @@ export const AuthProvider = ({ children }) => {
     let retryCount = 0;
     const maxRetries = 3;
 
-    const loadUser = async () => {
+    const loadLecturer = async () => {
       try {
-        const token = localStorage.getItem("token");
-        if (!token) {
+        const lecturerToken = localStorage.getItem("lecturerToken");
+        
+        if (!lecturerToken) {
           throw new Error("No authentication token found");
         }
 
-        const response = await getCurrentUser();
+        const response = await getCurrentLecturer();
         if (isMounted) {
-          setUser(response.data);
+          setLecturer(response.lecturer);
+          setIsAdmin(response.lecturer?.is_admin || false);
           setError(null);
 
           if (location.state?.from) {
             navigate(location.state.from, { replace: true });
+          } else if (!location.pathname.startsWith('/lecturer/')) {
+            navigate('/lecturer/dashboard', { replace: true });
           }
         }
       } catch (err) {
@@ -41,25 +49,23 @@ export const AuthProvider = ({ children }) => {
             await new Promise((resolve) =>
               setTimeout(resolve, 1000 * retryCount)
             );
-            return loadUser();
+            return loadLecturer();
           }
 
-          localStorage.removeItem("token");
+          localStorage.removeItem("lecturerToken");
           setError(
             err.response?.data?.message ||
               "Session expired. Please login again."
           );
 
           const publicRoutes = [
-            "/login",
-            "/register",
-            "/forgot-password",
-            "/reset-password",
+            "/lecturer/login",
+            "/lecturer/register",
+            "/lecturer/forgot-password"
           ];
-          if (
-            !publicRoutes.some((route) => location.pathname.startsWith(route))
-          ) {
-            navigate("/login", {
+          
+          if (!publicRoutes.some(route => location.pathname.startsWith(route))) {
+            navigate("/lecturer/login", {
               state: {
                 from: location,
                 error: err.response?.data?.message,
@@ -75,47 +81,36 @@ export const AuthProvider = ({ children }) => {
       }
     };
 
-    loadUser();
+    loadLecturer();
 
     return () => {
       isMounted = false;
     };
   }, [navigate, location]);
 
-  const login = async (email, password) => {
-    try {
-      setLoading(true);
-      const response = await loginApi(email, password);
+  const loginLecturer = async (email, password) => {
+  try {
+    const res = await axios.post('/auth/lecturer/login', { email, password });
 
-      localStorage.setItem("token", response.data.token);
-      setUser(response.data.user);
-      setError(null);
+    // Only on success
+    localStorage.setItem('token', res.data.token);
+    setLecturer(res.data.lecturer);
 
-      return {
-        success: true,
-        user: response.data.user,
-      };
-    } catch (err) {
-      const errorMsg =
-        err.response?.data?.message ||
-        "Login failed. Please check your credentials.";
-      setError(errorMsg);
+    return true;
+  } catch (err) {
+    return false; // Important: don't proceed
+  }
+};
 
-      return {
-        success: false,
-        error: errorMsg,
-      };
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   const logout = (options = {}) => {
-    localStorage.removeItem("token");
-    setUser(null);
+    localStorage.removeItem("lecturerToken");
+    setLecturer(null);
+    setIsAdmin(false);
     setError(null);
 
-    navigate("/login", {
+    navigate("/lecturer/login", {
       state: {
         message: options.message || "You have been logged out",
         from: options.navigateBack ? location.pathname : undefined,
@@ -127,8 +122,9 @@ export const AuthProvider = ({ children }) => {
   const refreshAuth = async () => {
     try {
       setLoading(true);
-      const response = await getCurrentUser();
-      setUser(response.data);
+      const response = await getCurrentLecturer();
+      setLecturer(response.lecturer);
+      setIsAdmin(response.lecturer?.is_admin || false);
       setError(null);
       return true;
     } catch (err) {
@@ -140,12 +136,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   const value = {
-    user,
-    isAuthenticated: !!user,
+    lecturer,
+    isAuthenticated: !!lecturer,
+    isAdmin,
     loading,
     error,
     initialized,
-    login,
+    loginLecturer,
     logout,
     refreshAuth,
     setError,

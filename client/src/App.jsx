@@ -4,6 +4,8 @@ import theme from './styles/themes/theme';
 import { useAuth } from './contexts/AuthContext';
 import GlobalStyles from './styles/GlobalStyles';
 import LoadingSpinner from './components/common/LoadingSpinner';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
 function App() {
   const { initialized } = useAuth();
@@ -16,7 +18,9 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <GlobalStyles />
+      <LocalizationProvider dateAdapter={AdapterDateFns}>
         <AppRoutes />
+      </LocalizationProvider>
     </ThemeProvider>
   );
 }

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Container,
   Paper,
@@ -7,45 +7,79 @@ import {
   TextField,
   Button,
   Box,
-  Link,
   FormControlLabel,
-  Checkbox
-} from '@mui/material';
-import { PersonAdd as PersonAddIcon } from '@mui/icons-material';
-import { register } from '../../services/authService';
+  Checkbox,
+  MenuItem,
+  Alert
+} from "@mui/material";
+import { PersonAdd as PersonAddIcon } from "@mui/icons-material";
+import { registerLecturer } from "../../services/authService";
 
-const Register = () => {
+const LecturerRegister = () => {
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    agreeTerms: false
+    firstName: "",
+    lastName: "",
+    email: "",
+    staffId: "",
+    department: "",
+    password: "",
+    confirmPassword: "",
+    agreeTerms: false,
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // Sample departments - replace with your actual department data
+  const departments = [
+    { value: "computer_science", label: "Computer Science" },
+    { value: "mathematics", label: "Mathematics" },
+    { value: "physics", label: "Physics" },
+    // Add more departments as needed
+  ];
+
   const handleChange = (e) => {
     const { name, value, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: name === 'agreeTerms' ? checked : value
+      [name]: name === "agreeTerms" ? checked : value,
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validation
     if (!formData.agreeTerms) {
-      setError('You must agree to the terms and conditions');
+      setError("You must agree to the terms and conditions");
       return;
     }
+    
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
     setLoading(true);
     try {
-      await register(formData);
-      navigate('/login');
+      await registerLecturer({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        staffId: formData.staffId,
+        department: formData.department,
+        password: formData.password
+      });
+      
+      navigate("/lecturer/login", { 
+        state: { 
+          registrationSuccess: true,
+          email: formData.email 
+        } 
+      });
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed');
+      console.error("Registration Error:", err);
+      setError(err.response?.data?.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -130,56 +164,102 @@ const Register = () => {
   };
 
   return (
-    <div style={styles.pageContainer}>
-      <Paper style={styles.formContainer} elevation={3}>
-        <Box style={styles.header}>
-          <PersonAddIcon style={styles.icon} />
-          <Typography style={styles.title}>Create Account</Typography>
+    <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+      <Paper elevation={3} sx={{ p: 4 }}>
+        <Box textAlign="center" mb={3}>
+          <PersonAddIcon color="primary" sx={{ fontSize: 40 }} />
+          <Typography variant="h4" component="h1" gutterBottom>
+            Lecturer Registration
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Register for access to the Exam Security System
+          </Typography>
         </Box>
 
         {error && (
-          <Typography style={styles.error}>{error}</Typography>
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
         )}
 
         <form onSubmit={handleSubmit}>
           <Box style={styles.inputGroup}>
             <TextField
+              fullWidth
               label="First Name"
               name="firstName"
               required
-              fullWidth
               value={formData.firstName}
               onChange={handleChange}
             />
             <TextField
+              fullWidth
               label="Last Name"
               name="lastName"
               required
-              fullWidth
               value={formData.lastName}
               onChange={handleChange}
             />
           </Box>
+
+          <Box display="flex" gap={2} mb={2}>
+            <TextField
+              fullWidth
+              label="Email Address"
+              type="email"
+              name="email"
+              required
+              value={formData.email}
+              onChange={handleChange}
+            />
+            <TextField
+              fullWidth
+              label="Staff ID"
+              name="staffId"
+              required
+              value={formData.staffId}
+              onChange={handleChange}
+            />
+          </Box>
+
           <TextField
-            label="Email Address"
-            name="email"
-            type="email"
-            required
+            select
             fullWidth
-            value={formData.email}
-            onChange={handleChange}
-            style={styles.input}
-          />
-          <TextField
-            label="Password"
-            name="password"
-            type="password"
+            label="Department"
+            name="department"
             required
-            fullWidth
-            value={formData.password}
+            value={formData.department}
             onChange={handleChange}
-            style={styles.input}
-          />
+            sx={{ mb: 2 }}
+          >
+            {departments.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <Box display="flex" gap={2} mb={2}>
+            <TextField
+              fullWidth
+              label="Password"
+              type="password"
+              name="password"
+              required
+              value={formData.password}
+              onChange={handleChange}
+            />
+            <TextField
+              fullWidth
+              label="Confirm Password"
+              type="password"
+              name="confirmPassword"
+              required
+              value={formData.confirmPassword}
+              onChange={handleChange}
+            />
+          </Box>
+
           <FormControlLabel
             control={
               <Checkbox
@@ -198,6 +278,7 @@ const Register = () => {
           <Button
             type="submit"
             variant="contained"
+            size="large"
             disabled={loading}
             sx={{
               ...styles.button,
@@ -206,19 +287,12 @@ const Register = () => {
               }
             }}
           >
-            {loading ? 'Registering...' : 'Register'}
+            {loading ? "Registering..." : "Register as Lecturer"}
           </Button>
         </form>
-
-        <Typography style={{ textAlign: 'center', fontSize: '14px' }}>
-          Already have an account?{' '}
-          <Link href="/login" underline="hover" style={styles.link}>
-            Sign in
-          </Link>
-        </Typography>
       </Paper>
-    </div>
+    </Container>
   );
 };
 
-export default Register;
+export default LecturerRegister;
