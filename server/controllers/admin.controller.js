@@ -1,72 +1,83 @@
-import { User, Department, Report } from '../models/Index.js';
-import bcrypt from 'bcryptjs';
+import pool from '../config/database.js';
 
-// Controller for admin-specific operations
-const adminController = {
-  // List all users
-  async listUsers(req, res, next) {
-    try {
-      const users = await User.findAll({
-        attributes: ['user_id','university_id','email','first_name','last_name','role','is_active','department_id'],
-      });
-      res.json(users);
-    } catch (err) {
-      next(err);
-    }
-  },
-
-  // Create a new department
-  async createDepartment(req, res, next) {
-    try {
-      const { name, faculty, secret_key } = req.body;
-      const secret_key_hash = await bcrypt.hash(secret_key, 12);
-      const dept = await Department.create({ name, faculty, secret_key_hash });
-      res.status(201).json(dept);
-    } catch (err) {
-      next(err);
-    }
-  },
-
-  // Update an existing department
-  async updateDepartment(req, res, next) {
-    try {
-      const { id } = req.params;
-      const dept = await Department.findByPk(id);
-      if (!dept) return res.status(404).json({ error: 'Department not found' });
-      const updates = { name: req.body.name, faculty: req.body.faculty };
-      if (req.body.secret_key) {
-        updates.secret_key_hash = await bcrypt.hash(req.body.secret_key, 12);
-      }
-      await dept.update(updates);
-      res.json(dept);
-    } catch (err) {
-      next(err);
-    }
-  },
-
-  // Delete a department
-  async deleteDepartment(req, res, next) {
-    try {
-      const { id } = req.params;
-      const deleted = await Department.destroy({ where: { department_id: id } });
-      if (!deleted) return res.status(404).json({ error: 'Department not found' });
-      res.status(204).end();
-    } catch (err) {
-      next(err);
-    }
-  },
-
-  // List all generated reports
-  async listReports(req, res, next) {
-    try {
-      const reports = await Report.findAll({
-        include: [{ model: Department, attributes: ['name','faculty'] }, { model: User, as: 'generatedBy', attributes: ['first_name','last_name','role'] }]
-      });
-      res.json(reports);
-    } catch (err) {
-      next(err);
-    }
+export const listLecturers = async (req, res, next) => {
+  try {
+    const [lecturers] = await pool.query(
+      `SELECT lecturer_id, email, first_name, last_name, staff_id, department_id, is_admin 
+       FROM lecturers`
+    );
+    res.json(lecturers);
+  } catch (error) {
+    next(error);
   }
 };
 
-export default adminController;
+export const createLecturer = async (req, res, next) => {
+  try {
+    const { email, password, first_name, last_name, staff_id, department_id, is_admin } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 12);
+    
+    const [result] = await pool.query(
+      `INSERT INTO lecturers 
+       (email, password_hash, first_name, last_name, staff_id, department_id, is_admin)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [email, hashedPassword, first_name, last_name, staff_id, department_id, is_admin || 0]
+    );
+    
+    res.status(201).json({
+      lecturer_id: result.insertId,
+      message: 'Lecturer created successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateLecturer = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { email, first_name, last_name, staff_id, department_id, is_admin } = req.body;
+    
+    await pool.query(
+      `UPDATE lecturers 
+       SET email = ?, first_name = ?, last_name = ?, staff_id = ?, department_id = ?, is_admin = ?
+       WHERE lecturer_id = ?`,
+      [email, first_name, last_name, staff_id, department_id, is_admin, id]
+    );
+    
+    res.json({ message: 'Lecturer updated successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const auditLogs = async (req, res, next) => {
+  try {
+    const [logs] = await pool.query(`
+      SELECT report_id, report_type, generated_by, generated_at 
+      FROM reports 
+      ORDER BY generated_at DESC
+    `);
+    res.json(logs);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getSystemStats = async (req, res, next) => {
+  try {
+    const [[students]] = await pool.query(`SELECT COUNT(*) as total FROM students`);
+    const [[lecturers]] = await pool.query(`SELECT COUNT(*) as total FROM lecturers`);
+    const [[courses]] = await pool.query(`SELECT COUNT(*) as total FROM courses`);
+    const [[exams]] = await pool.query(`SELECT COUNT(*) as total FROM exams`);
+
+    res.json({
+      totalStudents: students.total,
+      totalLecturers: lecturers.total,
+      totalCourses: courses.total,
+      totalExams: exams.total
+    });
+  } catch (error) {
+    next(error);
+  }
+};

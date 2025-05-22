@@ -1,42 +1,25 @@
- 
-// backend/routes/adminRoutes.js
-const express = require('express');
+import express from 'express';
+import { 
+  listLecturers,
+  createLecturer,
+  updateLecturer,
+  getSystemStats,
+  auditLogs
+} from '../controllers/admin.controller.js';
+import { authenticate, isAdmin } from '../middlewares/auth.middleware.js';
+
 const router = express.Router();
-const adminController = require('../controllers/adminController');
-const authMiddleware = require('../middleware/authMiddleware');
-const roleMiddleware = require('../middleware/roleMiddleware');
 
-// Authentication routes
-router.post('/login', adminController.login);
-router.post('/register', authMiddleware.verifyToken, roleMiddleware.checkRole('admin'), adminController.register);
-router.post('/forgot-password', adminController.forgotPassword);
-router.post('/reset-password/:token', adminController.resetPassword);
+router.use(authenticate);
+router.use(isAdmin);
 
-// Protected routes
-router.use(authMiddleware.verifyToken);
+// Lecturer Management
+router.get('/lecturers', listLecturers);
+router.post('/lecturers', createLecturer);
+router.put('/lecturers/:id', updateLecturer);
 
-// Dashboard routes
-router.get('/dashboard', adminController.getDashboardStats);
-router.get('/dashboard/home', adminController.getDashboardHome);
-router.get('/monitoring', adminController.getMonitoringData);
-router.get('/reports', adminController.generateReports);
+// System Management
+router.get('/stats', getSystemStats);
+router.get('/audit-logs', auditLogs);
 
-// Admin-only routes
-router.use(roleMiddleware.checkRole('admin'));
-
-// User management
-router.route('/admin/users')
-  .get(adminController.getAllUsers)
-  .post(adminController.createUser);
-
-router.route('/admin/users/:id')
-  .get(adminController.getUser)
-  .put(adminController.updateUser)
-  .delete(adminController.deleteUser);
-
-// System settings
-router.route('/admin/settings')
-  .get(adminController.getSettings)
-  .put(adminController.updateSettings);
-
-module.exports = router;
+export default router;

@@ -1,10 +1,9 @@
- 
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import authRoutes from './routes/auth.routes.js';
-import apiRoutes from './routes/api.routes.js';
+import lecturerRoutes from './routes/lecturer.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import { notFound, errorHandler } from './middlewares/error.js';
 import './config/database.js'; // Initialize DB connection
@@ -20,7 +19,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api', apiRoutes);
+app.use('/api/lecturer', lecturerRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Error handling

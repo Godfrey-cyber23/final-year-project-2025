@@ -1,109 +1,90 @@
- 
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import User from '../models/User.js';
+import pool from '../config/database.js';
 import { sendResetEmail } from '../services/email.service.js';
 
-const generateToken = (userId) => {
-  return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
+const generateToken = (lecturerId, isAdmin) => {
+  return jwt.sign({ id: lecturerId, isAdmin }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN
   });
 };
 
-export const register = async (req, res) => {
+export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
     
-    // Check if user exists
-    const existingUser = await User.findByEmail(email);
-    if (existingUser) {
-      return res.status(400).json({ message: 'Email already in use' });
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const [rows] = await pool.query(
+      `SELECT lecturer_id, password_hash, is_admin 
+       FROM lecturers 
+       WHERE email = ?`, 
+      [email]
+    );
     
-    // Create user
-    const user = await User.create({
-      email,
-      password: hashedPassword
-    });
-
-    const token = generateToken(user.id);
-    
-    res.status(201).json({
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role
-      },
-      token
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Registration failed' });
-  }
-};
-
-export const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    
-    const user = await User.findByEmail(email);
-    if (!user) {
+    if (rows.length === 0) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const lecturer = rows[0];
+    const isMatch = await bcrypt.compare(password, lecturer.password_hash);
+    
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const token = generateToken(user.id);
+    const token = generateToken(lecturer.lecturer_id, lecturer.is_admin);
     
     res.json({
       user: {
-        id: user.id,
-        email: user.email,
-        role: user.role
+        id: lecturer.lecturer_id,
+        isAdmin: lecturer.is_admin
       },
       token
     });
   } catch (error) {
-    res.status(500).json({ message: 'Login failed' });
+    next(error);
   }
 };
 
-export const forgotPassword = async (req, res) => {
+export const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
-    const user = await User.findByEmail(email);
     
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    const [rows] = await pool.query(
+      'SELECT lecturer_id FROM lecturers WHERE email = ?', 
+      [email]
+    );
+    
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Lecturer not found' });
     }
 
+    const lecturer = rows[0];
     const resetToken = jwt.sign(
-      { id: user.id }, 
+      { id: lecturer.lecturer_id }, 
       process.env.JWT_RESET_SECRET, 
       { expiresIn: '1h' }
     );
 
-    await sendResetEmail(user.email, resetToken);
+    await sendResetEmail(email, resetToken);
     
     res.json({ message: 'Reset email sent' });
   } catch (error) {
-    res.status(500).json({ message: 'Password reset failed' });
+    next(error);
   }
 };
 
-export const resetPassword = async (req, res) => {
+export const resetPassword = async (req, res, next) => {
   try {
-    const { token, newPassword } = req.body;
+    const { token } = req.params;
+    const { newPassword } = req.body;
     
     const decoded = jwt.verify(token, process.env.JWT_RESET_SECRET);
     const hashedPassword = await bcrypt.hash(newPassword, 12);
     
-    await User.updatePassword(decoded.id, hashedPassword);
+    await pool.query(
+      'UPDATE lecturers SET password_hash = ? WHERE lecturer_id = ?',
+      [hashedPassword, decoded.id]
+    );
     
     res.json({ message: 'Password updated successfully' });
   } catch (error) {
