@@ -3,9 +3,9 @@ import React, { useMemo } from 'react';
 const hexToHSL = (hex) => {
   hex = hex.replace('#', '');
   const bigint = parseInt(hex, 16);
-  const r = (bigint >> 16) & 255;
-  const g = (bigint >> 8) & 255;
-  const b = bigint & 255;
+  const r = (bigint >> 16) & 0xff;
+  const g = (bigint >> 8) & 0xff;
+  const b = bigint & 0xff;
 
   const r1 = r / 255;
   const g1 = g / 255;
@@ -17,8 +17,8 @@ const hexToHSL = (hex) => {
   let h = 0;
   if (delta !== 0) {
     if (max === r1) h = ((g1 - b1) / delta) % 6;
-    else if (max === g1) h = (b1 - r1) / delta + 2;
-    else h = (r1 - g1) / delta + 4;
+    else if (max === g1) h = ((b1 - r1) / delta) + 2;
+    else h = ((r1 - g1) / delta) + 4;
     h *= 60;
     if (h < 0) h += 360;
   }
@@ -32,8 +32,8 @@ const hexToHSL = (hex) => {
 const SpinnerOriginal = ({ color }) => {
   const colors = useMemo(
     () =>
-      new Array(6).fill(color).map((color, index) => {
-        const { h, s, l } = hexToHSL(color);
+      Array(6).fill(color).map((col, index) => {
+        const { h, s, l } = hexToHSL(col);
         const newH = Math.min(360, h * 360 + 10 * index);
         const rounded = [newH, s * 100, l * 100].map(Math.round);
         return `hsl(${rounded[0]}, ${rounded[1]}%, ${rounded[2]}%)`;

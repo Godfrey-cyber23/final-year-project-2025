@@ -10,9 +10,9 @@ import { BrowserRouter } from "react-router-dom";
 import { ThemeProvider as MuiThemeProvider } from "@mui/material/styles";
 import { ThemeProvider as StyledThemeProvider } from "styled-components";
 import theme from "./styles/themes/theme";
-import { CircularProgress, Box, Typography, Button } from "@mui/material";
 import { store, persistor } from "./redux/store";
 import GlobalStyles from "./styles/GlobalStyles";
+import LoadingSpinner from './components/common/LoadingSpinner';
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
@@ -77,30 +77,6 @@ class ErrorBoundary extends React.Component {
     return this.props.children;
   }
 }
-
-// Loading Component
-const LoadingSpinner = () => (
-  <Box
-    sx={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: "100%",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: "background.paper",
-      zIndex: 9999,
-    }}
-  >
-    <CircularProgress size={60} thickness={4} />
-    <Typography variant="h6" sx={{ mt: 2 }}>
-      Initializing Security System...
-    </Typography>
-  </Box>
-);
 
 // Root Component with Error Boundary
 const Root = () => {
