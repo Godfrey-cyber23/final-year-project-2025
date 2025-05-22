@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -9,22 +9,44 @@ import {
   Box,
   Link,
   FormControlLabel,
-  Checkbox
+  Checkbox,
+  Alert,
+  Collapse,
+  IconButton,
+  MenuItem,
+  Select,
+  InputLabel,
+  FormControl
 } from '@mui/material';
 import { PersonAdd as PersonAddIcon } from '@mui/icons-material';
-import { register } from '../../services/authService';
+import { registerLecturer } from '../../services/authService';
+import CloseIcon from '@mui/icons-material/Close';
 
-const Register = () => {
+const RegisterLecturer = () => {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     password: '',
+    staff_id: '',
+    department_id: '',
+    contact_number: '',
+    secret_key: '',
     agreeTerms: false
   });
+  
+  const [departments, setDepartments] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [fetchingDepts, setFetchingDepts] = useState(false);
   const navigate = useNavigate();
+
+  // In a real app, you would fetch this from your API
+  const mockDepartments = [
+    { department_id: 1, name: 'Computer Science', faculty: 'Science' },
+    { department_id: 2, name: 'Mathematics', faculty: 'Science' },
+    { department_id: 3, name: 'Physics', faculty: 'Science' },
+  ];
 
   const handleChange = (e) => {
     const { name, value, checked } = e.target;
@@ -34,15 +56,34 @@ const Register = () => {
     }));
   };
 
+  const handleDepartmentChange = async (e) => {
+    const deptId = e.target.value;
+    setFormData(prev => ({ ...prev, department_id: deptId }));
+    
+    // In a real app, you would fetch the department details here
+    // This is just a mock implementation
+    setFetchingDepts(true);
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setDepartments(mockDepartments);
+    } catch (err) {
+      setError('Failed to load departments');
+    } finally {
+      setFetchingDepts(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.agreeTerms) {
       setError('You must agree to the terms and conditions');
       return;
     }
+    
     setLoading(true);
     try {
-      await register(formData);
+      await registerLecturer(formData);
       navigate('/login');
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');
@@ -62,7 +103,7 @@ const Register = () => {
     },
     formContainer: {
       width: '100%',
-      maxWidth: '500px',
+      maxWidth: '600px',
       padding: '40px',
       backgroundColor: 'rgba(255, 255, 255, 0.95)',
       borderRadius: '12px',
@@ -117,9 +158,6 @@ const Register = () => {
       transition: 'all 0.3s ease',
       marginBottom: '24px'
     },
-    buttonHover: {
-      backgroundColor: '#166534'
-    },
     link: {
       textAlign: 'center',
       fontSize: '14px',
@@ -134,12 +172,27 @@ const Register = () => {
       <Paper style={styles.formContainer} elevation={3}>
         <Box style={styles.header}>
           <PersonAddIcon style={styles.icon} />
-          <Typography style={styles.title}>Create Account</Typography>
+          <Typography style={styles.title}>Lecturer Registration</Typography>
         </Box>
 
-        {error && (
-          <Typography style={styles.error}>{error}</Typography>
-        )}
+        <Collapse in={!!error}>
+          <Alert 
+            severity="error"
+            sx={{ mb: 3 }}
+            action={
+              <IconButton
+                aria-label="close"
+                color="inherit"
+                size="small"
+                onClick={() => setError('')}
+              >
+                <CloseIcon fontSize="inherit" />
+              </IconButton>
+            }
+          >
+            {error}
+          </Alert>
+        </Collapse>
 
         <form onSubmit={handleSubmit}>
           <Box style={styles.inputGroup}>
@@ -160,6 +213,7 @@ const Register = () => {
               onChange={handleChange}
             />
           </Box>
+
           <TextField
             label="Email Address"
             name="email"
@@ -170,6 +224,58 @@ const Register = () => {
             onChange={handleChange}
             style={styles.input}
           />
+
+          <TextField
+            label="Staff ID"
+            name="staff_id"
+            required
+            fullWidth
+            value={formData.staff_id}
+            onChange={handleChange}
+            style={styles.input}
+          />
+
+          <TextField
+            label="Contact Number"
+            name="contact_number"
+            type="tel"
+            required
+            fullWidth
+            value={formData.contact_number}
+            onChange={handleChange}
+            style={styles.input}
+          />
+
+          <FormControl fullWidth style={styles.input}>
+            <InputLabel id="department-label">Department</InputLabel>
+            <Select
+              labelId="department-label"
+              name="department_id"
+              value={formData.department_id}
+              onChange={handleDepartmentChange}
+              label="Department"
+              required
+            >
+              {mockDepartments.map((dept) => (
+                <MenuItem key={dept.department_id} value={dept.department_id}>
+                  {dept.name} ({dept.faculty})
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <TextField
+            label="Department Secret Key"
+            name="secret_key"
+            type="password"
+            required
+            fullWidth
+            value={formData.secret_key}
+            onChange={handleChange}
+            style={styles.input}
+            helperText="Contact your department administrator for the secret key"
+          />
+
           <TextField
             label="Password"
             name="password"
@@ -180,6 +286,7 @@ const Register = () => {
             onChange={handleChange}
             style={styles.input}
           />
+
           <FormControlLabel
             control={
               <Checkbox
@@ -195,10 +302,11 @@ const Register = () => {
               </Typography>
             }
           />
+
           <Button
             type="submit"
             variant="contained"
-            disabled={loading}
+            disabled={loading || fetchingDepts}
             sx={{
               ...styles.button,
               '&:hover': {
@@ -221,4 +329,4 @@ const Register = () => {
   );
 };
 
-export default Register;
+export default RegisterLecturer;

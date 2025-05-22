@@ -1,7 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import Login from '@/pages/Auth/Login';
-import Register from '@/pages/Auth/Register';
+import RegisterLecturer from '@/pages/Auth/Register';
 import ForgotPassword from '@/pages/Auth/ForgotPassword';
 import ResetPassword from '@/pages/Auth/ResetPassword';
 import Dashboard from '@/pages/Dashboard/Home';
@@ -20,7 +20,7 @@ const AppRoutes = () => {
     <Routes>
       {/* Public Routes */}
       <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+      <Route path="/register" element={<RegisterLecturer />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password/:token" element={<ResetPassword />} />
       <Route path="/unauthorized" element={<Unauthorized />} />

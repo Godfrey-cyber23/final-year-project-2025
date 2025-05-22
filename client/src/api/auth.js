@@ -1,22 +1,22 @@
 import api from './axios';
 
 /**
- * Authentication API Service
- * Handles all auth-related API calls with standardized error handling
+ * Lecturer Authentication API Service
+ * Handles all auth-related API calls for lecturers with standardized error handling
  */
 export const authService = {
   /**
-   * User login
+   * Lecturer login
    * @param {string} email 
    * @param {string} password 
-   * @returns {Promise<{success: boolean, user?: object, token?: string, error?: string}>}
+   * @returns {Promise<{success: boolean, lecturer?: object, token?: string, error?: string}>}
    */
   async login(email, password) {
     try {
       const { data } = await api.post('/auth/login', { email, password });
       return {
         success: true,
-        user: data.user,
+        lecturer: data.lecturer,
         token: data.token
       };
     } catch (error) {
@@ -25,34 +25,29 @@ export const authService = {
         success: false,
         error: error.response?.data?.message || 
                error.message || 
-               'Login failed. Please try again.'
+               'Login failed. Please check your credentials.'
       };
     }
   },
 
   /**
-   * User registration
-   * @param {string} email 
-   * @param {string} password 
-   * @returns {Promise<{success: boolean, user?: object, error?: string}>}
+   * Create new lecturer (admin-only)
+   * @param {object} lecturerData 
+   * @returns {Promise<{success: boolean, lecturer?: object, error?: string}>}
    */
-  async register(email, password) {
+  async registerLecturer(lecturerData) {
     try {
-      const { data } = await api.post('/auth/register', { 
-        email, 
-        password,
-        role: 'user'
-      });
+      const { data } = await api.post('/admin/lecturers', lecturerData);
       return {
         success: true,
-        user: data.user
+        lecturer: data
       };
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('Create lecturer error:', error);
       return {
         success: false,
         error: error.response?.data?.message || 
-               'Registration failed. Please try different credentials.'
+               'Failed to create lecturer account.'
       };
     }
   },
@@ -67,7 +62,7 @@ export const authService = {
       await api.post('/auth/forgot-password', { email });
       return {
         success: true,
-        message: 'If an account exists with this email, you will receive a password reset link shortly.'
+        message: 'If a lecturer account exists with this email, you will receive a password reset link shortly.'
       };
     } catch (error) {
       console.error('Forgot password error:', error);
@@ -87,7 +82,7 @@ export const authService = {
    */
   async resetPassword(token, newPassword) {
     try {
-      await api.post('/auth/reset-password', { token, newPassword });
+      await api.post(`/auth/reset-password/${token}`, { newPassword });
       return {
         success: true,
         message: 'Password updated successfully. You can now login with your new password.'
@@ -103,18 +98,18 @@ export const authService = {
   },
 
   /**
-   * Get current authenticated user
-   * @returns {Promise<{success: boolean, user?: object, error?: string}>}
+   * Get current authenticated lecturer
+   * @returns {Promise<{success: boolean, lecturer?: object, error?: string}>}
    */
-  async getCurrentUser() {
+  async getCurrentLecturer() {
     try {
-      const { data } = await api.get('/auth/me');
+      const { data } = await api.get('/lecturer/me');
       return {
         success: true,
-        user: data
+        lecturer: data
       };
     } catch (error) {
-      console.error('Get current user error:', error);
+      console.error('Get current lecturer error:', error);
       return {
         success: false,
         error: error.response?.data?.message || 
@@ -142,13 +137,36 @@ export const authService = {
         error: error.response?.data?.message || 'Invalid or expired token'
       };
     }
+  },
+
+  /**
+   * Update lecturer profile (for current lecturer)
+   * @param {object} updates 
+   * @returns {Promise<{success: boolean, lecturer?: object, error?: string}>}
+   */
+  async updateProfile(updates) {
+    try {
+      const { data } = await api.patch('/lecturer/profile', updates);
+      return {
+        success: true,
+        lecturer: data
+      };
+    } catch (error) {
+      console.error('Update profile error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || 
+               'Failed to update profile.'
+      };
+    }
   }
 };
 
 // Named exports
 export const login = authService.login;
-export const register = authService.register;
+export const registerLecturer = authService.registerLecturer;
 export const forgotPassword = authService.forgotPassword;
 export const resetPassword = authService.resetPassword;
-export const getCurrentUser = authService.getCurrentUser;
+export const getCurrentLecturer = authService.getCurrentLecturer;
 export const verifyResetToken = authService.verifyResetToken;
+export const updateProfile = authService.updateProfile;
