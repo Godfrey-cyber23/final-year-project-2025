@@ -1,51 +1,51 @@
--- Create database
-CREATE DATABASE IF NOT EXISTS exam_security;
-USE exam_security;
+-- -- Create database
+-- CREATE DATABASE IF NOT EXISTS exam_security;
+-- USE exam_security;
 
--- Users table
-CREATE TABLE IF NOT EXISTS users (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  email VARCHAR(255) NOT NULL UNIQUE,
-  password VARCHAR(255) NOT NULL,
-  role ENUM('admin', 'operator', 'student') DEFAULT 'student',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+-- -- Users table
+-- CREATE TABLE IF NOT EXISTS users (
+--   id INT AUTO_INCREMENT PRIMARY KEY,
+--   email VARCHAR(255) NOT NULL UNIQUE,
+--   password VARCHAR(255) NOT NULL,
+--   role ENUM('admin', 'operator', 'student') DEFAULT 'student',
+--   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+-- );
 
--- Devices table
-CREATE TABLE IF NOT EXISTS devices (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  type ENUM('metal_detector', 'rfid_scanner', 'camera') NOT NULL,
-  location VARCHAR(255),
-  status ENUM('active', 'inactive', 'maintenance') DEFAULT 'active',
-  last_active TIMESTAMP,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+-- -- Devices table
+-- CREATE TABLE IF NOT EXISTS devices (
+--   id INT AUTO_INCREMENT PRIMARY KEY,
+--   name VARCHAR(255) NOT NULL,
+--   type ENUM('metal_detector', 'rfid_scanner', 'camera') NOT NULL,
+--   location VARCHAR(255),
+--   status ENUM('active', 'inactive', 'maintenance') DEFAULT 'active',
+--   last_active TIMESTAMP,
+--   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
 
--- Detections table
-CREATE TABLE IF NOT EXISTS detections (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  device_id INT NOT NULL,
-  user_id INT,
-  severity ENUM('low', 'medium', 'high') NOT NULL,
-  type VARCHAR(255) NOT NULL,
-  description TEXT,
-  image_path VARCHAR(255),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (device_id) REFERENCES devices(id),
-  FOREIGN KEY (user_id) REFERENCES users(id)
-);
+-- -- Detections table
+-- CREATE TABLE IF NOT EXISTS detections (
+--   id INT AUTO_INCREMENT PRIMARY KEY,
+--   device_id INT NOT NULL,
+--   user_id INT,
+--   severity ENUM('low', 'medium', 'high') NOT NULL,
+--   type VARCHAR(255) NOT NULL,
+--   description TEXT,
+--   image_path VARCHAR(255),
+--   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--   FOREIGN KEY (device_id) REFERENCES devices(id),
+--   FOREIGN KEY (user_id) REFERENCES users(id)
+-- );
 
--- Audit logs
-CREATE TABLE IF NOT EXISTS audit_logs (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT,
-  action VARCHAR(255) NOT NULL,
-  entity_type VARCHAR(255),
-  entity_id INT,
-  ip_address VARCHAR(45),
-  user_agent TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id)
-);
+-- -- Audit logs
+-- CREATE TABLE IF NOT EXISTS audit_logs (
+--   id INT AUTO_INCREMENT PRIMARY KEY,
+--   user_id INT,
+--   action VARCHAR(255) NOT NULL,
+--   entity_type VARCHAR(255),
+--   entity_id INT,
+--   ip_address VARCHAR(45),
+--   user_agent TEXT,
+--   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--   FOREIGN KEY (user_id) REFERENCES users(id)
+-- );
