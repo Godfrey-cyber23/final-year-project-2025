@@ -1,12 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { login as loginApi, getCurrentUser } from "../api/auth";
+import { login as loginApi, getCurrentLecturer } from "../api/auth";
 import LoadingSpinner from "../components/common/LoadingSpinner";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [lecturer, setLecturer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [initialized, setInitialized] = useState(false);
@@ -18,18 +18,19 @@ export const AuthProvider = ({ children }) => {
     let retryCount = 0;
     const maxRetries = 3;
 
-    const loadUser = async () => {
+    const loadLecturer = async () => {
       try {
         const token = localStorage.getItem("token");
         if (!token) {
           throw new Error("No authentication token found");
         }
 
-        const response = await getCurrentUser();
+        const response = await getCurrentLecturer();
         if (isMounted) {
-          setUser(response.data);
+          setLecturer(response.data);
           setError(null);
 
+          // Redirect to intended page after login
           if (location.state?.from) {
             navigate(location.state.from, { replace: true });
           }
@@ -41,7 +42,7 @@ export const AuthProvider = ({ children }) => {
             await new Promise((resolve) =>
               setTimeout(resolve, 1000 * retryCount)
             );
-            return loadUser();
+            return loadLecturer();
           }
 
           localStorage.removeItem("token");
@@ -52,7 +53,6 @@ export const AuthProvider = ({ children }) => {
 
           const publicRoutes = [
             "/login",
-            "/register",
             "/forgot-password",
             "/reset-password",
           ];
@@ -75,7 +75,7 @@ export const AuthProvider = ({ children }) => {
       }
     };
 
-    loadUser();
+    loadLecturer();
 
     return () => {
       isMounted = false;
@@ -88,12 +88,12 @@ export const AuthProvider = ({ children }) => {
       const response = await loginApi(email, password);
 
       localStorage.setItem("token", response.data.token);
-      setUser(response.data.user);
+      setLecturer(response.data.lecturer);
       setError(null);
 
       return {
         success: true,
-        user: response.data.user,
+        lecturer: response.data.lecturer,
       };
     } catch (err) {
       const errorMsg =
@@ -112,7 +112,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = (options = {}) => {
     localStorage.removeItem("token");
-    setUser(null);
+    setLecturer(null);
     setError(null);
 
     navigate("/login", {
@@ -127,8 +127,8 @@ export const AuthProvider = ({ children }) => {
   const refreshAuth = async () => {
     try {
       setLoading(true);
-      const response = await getCurrentUser();
-      setUser(response.data);
+      const response = await getCurrentLecturer();
+      setLecturer(response.data);
       setError(null);
       return true;
     } catch (err) {
@@ -140,8 +140,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   const value = {
-    user,
-    isAuthenticated: !!user,
+    lecturer,
+    isAuthenticated: !!lecturer,
+    isAdmin: lecturer?.is_admin || false,
     loading,
     error,
     initialized,
