@@ -1,17 +1,21 @@
- 
-// server/middlewares/auth.middleware.js
-export const requireAuth = (req, res, next) => {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  next();
-};
+// backend/middleware/authMiddleware.js
+const { verifyToken } = require('../utils/jwt');
 
-export const requireRole = (roles) => {
-  return (req, res, next) => {
-    if (!roles.includes(req.user?.role)) {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
+exports.verifyToken = (req, res, next) => {
+  // Get token from header
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+
+  if (!token) {
+    return res.status(401).json({ message: 'No token, authorization denied' });
+  }
+
+  try {
+    // Verify token
+    const decoded = verifyToken(token);
+    req.user = decoded;
     next();
-  };
+  } catch (error) {
+    console.error(error);
+    res.status(401).json({ message: 'Token is not valid' });
+  }
 };

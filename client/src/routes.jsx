@@ -24,20 +24,16 @@ const AppRoutes = () => {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password/:token" element={<ResetPassword />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
-      <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/dashboard/home" element={<Home />} />
-          <Route path="/monitoring" element={<Monitoring />} />
-          <Route path="/reports" element={<Reports />} />
       
       {/* Protected Routes */}
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
           {/* Dashboard Routes */}
           <Route index element={<Dashboard />} />
-          {/* <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/dashboard/home" element={<Home />} />
           <Route path="/monitoring" element={<Monitoring />} />
-          <Route path="/reports" element={<Reports />} /> */}
+          <Route path="/reports" element={<Reports />} />
           
           
           {/* Admin Routes - Only accessible by admin role */}
