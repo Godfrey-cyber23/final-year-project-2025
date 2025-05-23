@@ -28,7 +28,7 @@ export const forgotStyles = {
       color: '#2c3e50',
       marginBottom: '0.5rem'
     },
-    '& .MuiTypography-body2': {
+    "& .MuiTypographyBody2": {
       color: '#7f8c8d',
       fontSize: '0.875rem'
     }

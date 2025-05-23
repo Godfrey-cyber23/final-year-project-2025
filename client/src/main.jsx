@@ -13,6 +13,7 @@ import theme from "./styles/themes/theme";
 import { store, persistor } from "./redux/store";
 import GlobalStyles from "./styles/GlobalStyles";
 import LoadingSpinner from './components/common/LoadingSpinner';
+import { Button, Box, Typography } from "@mui/material";
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {

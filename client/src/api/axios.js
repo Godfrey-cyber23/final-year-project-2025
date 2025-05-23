@@ -3,7 +3,9 @@ import axios from 'axios';
 // Configure base API settings
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
-  timeout: 10000, // 10 second timeout
+  timeout: 10000, // 10 seconds timeout
+  // Set withCredentials to true for cross-origin requests
+  credentials: "include",
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
@@ -54,12 +56,11 @@ api.interceptors.response.use(
     return response.data; // Return only data by default
   },
   (error) => {
-    // Handle network errors
-    if (!error.response) {
-      console.error('Network Error:', error.message);
+    if (error.code === 'ERR_NETWORK') {
+      console.error('CORS/Network Error:', error.message);
       return Promise.reject({
-        code: 'NETWORK_ERROR',
-        message: 'Please check your internet connection'
+        code: 'CORS_ERROR',
+        message: 'Failed to connect to the server. Please check your network and CORS settings.'
       });
     }
 

@@ -4,9 +4,11 @@ import theme from './styles/themes/theme';
 import { useAuth } from './contexts/AuthContext';
 import GlobalStyles from './styles/GlobalStyles';
 import LoadingSpinner from './components/common/LoadingSpinner';
+import { ToastContainer, useToast } from './hooks/useToast'; // import both
 
 function App() {
   const { initialized } = useAuth();
+  const { toasts, dismissToast } = useToast(); // call the hook
 
   if (!initialized) {
     return <LoadingSpinner fullScreen />;
@@ -16,7 +18,8 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <GlobalStyles />
-        <AppRoutes />
+      <AppRoutes />
+      <ToastContainer toasts={toasts} dismissToast={dismissToast} /> {/* pass props */}
     </ThemeProvider>
   );
 }
