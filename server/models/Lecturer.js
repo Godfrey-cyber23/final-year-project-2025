@@ -1,4 +1,3 @@
-// models/Lecturer.js
 module.exports = (sequelize, DataTypes) => {
   const Lecturer = sequelize.define('Lecturer', {
     lecturer_id: {
@@ -18,7 +17,12 @@ module.exports = (sequelize, DataTypes) => {
     department_id: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
-    }
+    },
+    role: {
+      type: DataTypes.ENUM('admin', 'instructor', 'system'),
+      allowNull: false,
+      defaultValue: 'instructor',
+    },
   }, {
     tableName: 'lecturers',
     timestamps: true,

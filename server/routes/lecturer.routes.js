@@ -15,6 +15,7 @@ const router = express.Router();
 router.get('/exams', authenticate, getExams);
 router.post('/exams', authenticate, createExam);
 router.put('/exams/:id', authenticate, updateExam);
+router.get('/me', authenticate, getCurrentLecturer);
 
 // Monitoring
 router.get('/monitoring/:examId', authenticate, getMonitoringData);

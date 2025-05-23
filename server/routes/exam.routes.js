@@ -8,46 +8,53 @@ const router = express.Router();
 const authenticate = passport.authenticate('jwt', { session: false });
 
 // Role-based authorization middleware
-const authorize = (roles) => (req, res, next) => {
-  if (!roles.includes(req.user.role)) {
-    return res.status(403).json({ error: 'Unauthorized access' });
+const authorizeAdmin = (req, res, next) => {
+  if (!req.lecturer?.is_admin) {
+    return res.status(403).json({ error: 'Admin access only' });
   }
   next();
 };
 
+router.post('/',
+  authenticate,
+  authorizeAdmin,
+  examController.createExam
+);
 // Exam CRUD Routes
 router.get('/', 
   authenticate,
+  authorizeAdmin,
   examController.getAllExams
 );
 
 router.get('/:examId',
   authenticate,
+  authorizeAdmin,
   examController.getExamDetails
 );
 
 router.post('/',
   authenticate,
-  authorize(['admin', 'instructor']),
+  authorizeAdmin,
   examController.createExam
 );
 
 router.put('/:examId',
   authenticate,
-  authorize(['admin', 'instructor']),
+  authorizeAdmin,
   examController.updateExam
 );
 
 router.delete('/:examId',
   authenticate,
-  authorize(['admin']),
+  authorizeAdmin,
   examController.deleteExam
 );
 
 // Exam Registration Routes
 router.get('/:examId/students',
   authenticate,
-  authorize(['admin', 'instructor']),
+  authorizeAdmin,
   examController.getExamRegistrations
 );
 
@@ -59,14 +66,14 @@ router.post('/:examId/register',
 
 router.put('/:examId/approve/:studentId',
   authenticate,
-  authorize(['admin', 'instructor']),
+  authorizeAdmin,
   examController.approveRegistration
 );
 
 // Monitoring and Security Routes
 router.get('/:examId/logs',
   authenticate,
-  authorize(['admin', 'instructor']),
+  authorizeAdmin,
   examController.getMonitoringLogs
 );
 
@@ -78,19 +85,19 @@ router.post('/:examId/logs',
 // Incident Management Routes
 router.get('/:examId/incidents',
   authenticate,
-  authorize(['admin', 'instructor']),
+  authorizeAdmin,
   examController.getExamIncidents
 );
 
 router.post('/:examId/incidents',
   authenticate,
-  authorize(['admin', 'instructor', 'system']),
+  authorizeAdmin,
   examController.createIncident
 );
 
 router.put('/:examId/incidents/:incidentId',
   authenticate,
-  authorize(['admin', 'instructor']),
+  authorizeAdmin,
   examController.resolveIncident
 );
 
