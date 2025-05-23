@@ -1,0 +1,28 @@
+-- Insert departments with sensible secret keys
+INSERT INTO departments (name, faculty, secret_key_hash, created_at, updated_at) VALUES
+('Computer Science', 'Science', SHA2('CS@2025', 256), NOW(), NOW()),
+('Mathematics', 'Science', SHA2('MATH@2025', 256), NOW(), NOW()),
+('Physics', 'Science', SHA2('PHYSICS@2025', 256), NOW(), NOW()),
+('Chemistry', 'Science', SHA2('CHEM@2025', 256), NOW(), NOW()),
+('Biology', 'Science', SHA2('BIO@2025', 256), NOW(), NOW());
+
+
+INSERT INTO lecturers (email, password_hash, first_name, last_name, staff_id, department_id, is_admin, created_at, updated_at) VALUES('godfrey.bwalya@cs.unza.zm', '$2a$12$3Qx7L6Zs2VY1JZOYE5sZ.eqjD9zD7w8WJkZ6VcQ1fLdKbWnY1lXG2', 'Godfrey', 'Bwalya', 'CS001', 1, 1, NOW(), NOW())
+-- Insert lecturers with consistent test password
+-- Password for all: 'Test@1234' (hashed)
+INSERT INTO lecturers (email, password_hash, first_name, last_name, staff_id, department_id, is_admin, created_at, updated_at) VALUES
+-- Computer Science Dept (Admins)
+('cs.admin@unza.edu.zm', '$2a$12$3Qx7L6Zs2VY1JZOYE5sZ.eqjD9zD7w8WJkZ6VcQ1fLdKbWnY1lXG2', 'John', 'Smith', 'CS001', 1, 1, NOW(), NOW()),
+('cs.lecturer@unza.edu.zm', '$2a$12$3Qx7L6Zs2VY1JZOYE5sZ.eqjD9zD7w8WJkZ6VcQ1fLdKbWnY1lXG2', 'Mary', 'Johnson', 'CS002', 1, 0, NOW(), NOW()),
+
+-- Mathematics Dept
+('math.admin@unza.edu.zm', '$2a$12$3Qx7L6Zs2VY1JZOYE5sZ.eqjD9zD7w8WJkZ6VcQ1fLdKbWnY1lXG2', 'David', 'Williams', 'MATH001', 2, 1, NOW(), NOW()),
+
+-- Physics Dept
+('physics.lecturer@unza.edu.zm', '$2a$12$3Qx7L6Zs2VY1JZOYE5sZ.eqjD9zD7w8WJkZ6VcQ1fLdKbWnY1lXG2', 'Sarah', 'Brown', 'PHY001', 3, 0, NOW(), NOW()),
+
+-- Chemistry Dept
+('chem.admin@unza.edu.zm', '$2a$12$3Qx7L6Zs2VY1JZOYE5sZ.eqjD9zD7w8WJkZ6VcQ1fLdKbWnY1lXG2', 'Robert', 'Jones', 'CHEM001', 4, 1, NOW(), NOW()),
+
+-- Biology Dept
+('bio.lecturer@unza.edu.zm', '$2a$12$3Qx7L6Zs2VY1JZOYE5sZ.eqjD9zD7w8WJkZ6VcQ1fLdKbWnY1lXG2', 'Emily', 'Davis', 'BIO001', 5, 0, NOW(), NOW());
