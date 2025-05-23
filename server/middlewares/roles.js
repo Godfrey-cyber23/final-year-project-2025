@@ -1,15 +1,24 @@
  
 // backend/middleware/roleMiddleware.js
-exports.checkRole = (roles) => {
+exports.checkIsAdmin = () => {
   return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({ message: 'Unauthorized' });
+    if (!req.lecturer) {
+      return res.status(401).json({ message: 'Unauthorized - Lecturer not found' });
     }
 
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ message: 'Forbidden - Insufficient permissions' });
+    if (!req.lecturer.is_admin) {
+      return res.status(403).json({ message: 'Forbidden - Admins only' });
     }
 
+    next();
+  };
+};
+
+exports.requireLecturer = () => {
+  return (req, res, next) => {
+    if (!req.lecturer) {
+      return res.status(401).json({ message: 'Unauthorized - Lecturer required' });
+    }
     next();
   };
 };
