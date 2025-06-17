@@ -9,33 +9,36 @@ const ForgotPassword = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState(""); // Separate state for success messages
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setMessage("");
     setLoading(true);
 
     try {
       const response = await forgotPassword(email);
 
-      // Always show success UI regardless of response for security
-      // This prevents email enumeration attacks
-      setSuccess(true);
-
-      // Log the actual response for debugging
-      console.log("Reset email response:", response);
+      if (response.success) {
+        setSuccess(true);
+        setMessage(response.message || "If your email exists in our system, you'll receive a reset link shortly.");
+      } else {
+        setError(response.error || "Failed to send reset link");
+      }
     } catch (err) {
       console.error("Forgot password error:", err);
-      // Still show success UI even on error for security
-      setSuccess(true);
-      // But log the actual error for debugging
-      if (err.response) {
-        console.error("Server responded with:", err.response.data);
-      }
+      setError("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleResend = async () => {
+    setError("");
+    setLoading(true);
+    await handleSubmit({ preventDefault: () => {} }); // Reuse submit logic
   };
 
   return (
@@ -57,8 +60,7 @@ const ForgotPassword = () => {
         {success ? (
           <>
             <div style={forgotStyles.alertSuccess}>
-              If an account exists with this email, we've sent a password reset
-              link.
+              {message || "Password reset email sent successfully!"}
             </div>
 
             <div style={{ marginTop: "20px", textAlign: "center" }}>
@@ -66,30 +68,26 @@ const ForgotPassword = () => {
                 Didn't receive the email?
               </p>
 
-              <div
-                style={{ display: "flex", flexDirection: "column", gap: "8px" }}
-              >
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 <button
                   style={{
                     ...forgotStyles.button,
                     backgroundColor: "#f0f0f0",
                     color: "#333",
                   }}
-                  onClick={() => {
-                    setSuccess(false);
-                    setEmail("");
-                  }}
+                  onClick={handleResend}
+                  disabled={loading}
                 >
-                  Resend Email
+                  {loading ? (
+                    <span>
+                      <i className="fas fa-spinner fa-spin mr-2"></i> Resending...
+                    </span>
+                  ) : (
+                    "Resend Email"
+                  )}
                 </button>
 
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    gap: "10px",
-                  }}
-                >
+                <div style={{ display: "flex", justifyContent: "center", gap: "10px" }}>
                   <button
                     style={{
                       ...forgotStyles.button,
@@ -116,17 +114,9 @@ const ForgotPassword = () => {
                 </div>
               </div>
 
-              <div
-                style={{ marginTop: "20px", fontSize: "0.9rem", color: "#666" }}
-              >
+              <div style={{ marginTop: "20px", fontSize: "0.9rem", color: "#666" }}>
                 <p>Check your:</p>
-                <ul
-                  style={{
-                    textAlign: "left",
-                    paddingLeft: "20px",
-                    margin: "8px 0",
-                  }}
-                >
+                <ul style={{ textAlign: "left", paddingLeft: "20px", margin: "8px 0" }}>
                   <li>Spam or junk folder</li>
                   <li>Email filters or rules</li>
                   <li>Typo in the email address</li>
@@ -152,6 +142,7 @@ const ForgotPassword = () => {
             </div>
 
             {error && <div style={forgotStyles.alertError}>{error}</div>}
+            {message && <div style={forgotStyles.alertSuccess}>{message}</div>}
 
             <button
               type="submit"

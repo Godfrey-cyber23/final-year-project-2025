@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
 import { login } from "../../services/authService";
 import { loginStyles } from "../../styles/loginStyles";
@@ -13,16 +13,13 @@ import {
   Collapse,
   IconButton,
   CircularProgress,
-  Tooltip,
   InputAdornment,
-  IconButton as MuiIconButton,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import LockResetIcon from "@mui/icons-material/LockReset";
 import { useToast } from "../../hooks/useToast";
-import PasswordStrengthBar from "react-password-strength-bar";
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -80,53 +77,71 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    
+
     if (isAccountLocked) {
-      showToast(`Account locked. Try again in ${lockTimeRemaining} seconds`, "error");
+      showToast(
+        `Account locked. Try again in ${lockTimeRemaining} seconds`,
+        "error"
+      );
       return;
     }
 
     setLoading(true);
 
     try {
-      const response = await login({
-        email: formData.email,
-        password: formData.password,
-        secret_key: formData.secret_key,
-      });
+      // Destructure the form data for clarity
+      const { email, password, secret_key } = formData;
+
+      const response = await login(email, password, secret_key);
 
       if (!response.success) {
-        throw new Error(response.error);
+        throw new Error(response.error || "Login failed");
+      }
+
+      // Add null checks for response data
+      if (!response.token || !response.lecturer) {
+        throw new Error("Invalid response from server");
       }
 
       // Reset login attempts on success
       setLoginAttempts(0);
-      
-      // Store token and user data
+
+      // Store token and user data with validation
       localStorage.setItem("token", response.token);
-      localStorage.setItem("user", JSON.stringify(response.lecturer));
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          ...response.lecturer,
+          is_admin: response.lecturer.is_admin || false, // Default to false if undefined
+        })
+      );
 
       showToast("Login successful", "success");
 
-      // Redirect based on role
-      if (response.lecturer.is_admin) {
-        navigate("/admin/dashboard");
-      } else {
-        navigate("/dashboard/home");
-      }
+      // Redirect based on role with fallback
+      const redirectPath = response.lecturer.is_admin
+        ? "/admin/dashboard"
+        : "/dashboard/home";
+      navigate(redirectPath);
     } catch (err) {
-      const errorMsg = err.message || "Login failed. Please check your credentials.";
+      const errorMsg =
+        err.response?.data?.message ||
+        err.message ||
+        "Login failed. Please check your credentials.";
       setError(errorMsg);
       showToast(errorMsg, "error");
-      
+
       // Handle account locking
       const newAttempts = loginAttempts + 1;
       setLoginAttempts(newAttempts);
-      
+
       if (newAttempts >= 5) {
         setIsAccountLocked(true);
         setLockTimeRemaining(300); // 5 minutes lockout
-        showToast("Account locked due to multiple failed attempts. Try again in 5 minutes.", "error");
+        showToast(
+          "Account locked due to multiple failed attempts. Try again in 5 minutes.",
+          "error"
+        );
       }
     } finally {
       setLoading(false);
@@ -137,22 +152,22 @@ const Login = () => {
   const formatTimeRemaining = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
   return (
     <Container maxWidth={false} sx={loginStyles.container}>
       <Box sx={loginStyles.formContainer}>
         <Box sx={loginStyles.header}>
-          <img 
-            src="/assets/images/unzaLogo.png" 
-            alt="UNZA Logo" 
-            style={{ height: '80px', marginBottom: '16px' }}
+          <img
+            src="/assets/images/unzaLogo.png"
+            alt="UNZA Logo"
+            style={{ height: "80px", marginBottom: "16px" }}
           />
-          <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold' }}>
+          <Typography variant="h5" component="h1" sx={{ fontWeight: "bold" }}>
             Lecturer Login
           </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
             Enter your credentials to access your account
           </Typography>
         </Box>
@@ -256,10 +271,10 @@ const Login = () => {
               ...loginStyles.submitButton,
               mt: 3,
               mb: 2,
-              bgcolor: isAccountLocked ? 'grey.500' : 'primary.main',
-              '&:hover': {
-                bgcolor: isAccountLocked ? 'grey.600' : 'primary.dark',
-              }
+              bgcolor: isAccountLocked ? "grey.500" : "primary.main",
+              "&:hover": {
+                bgcolor: isAccountLocked ? "grey.600" : "primary.dark",
+              },
             }}
             startIcon={isAccountLocked ? <LockResetIcon /> : null}
           >
@@ -273,24 +288,32 @@ const Login = () => {
           </Button>
 
           {loginAttempts > 0 && !isAccountLocked && (
-            <Typography variant="caption" color="error" sx={{ display: 'block', textAlign: 'center' }}>
+            <Typography
+              variant="caption"
+              color="error"
+              sx={{ display: "block", textAlign: "center" }}
+            >
               {`${5 - loginAttempts} attempts remaining before account lock`}
             </Typography>
           )}
         </form>
 
         <Box sx={loginStyles.footerLinks}>
-          <Typography variant="body2" sx={{ textAlign: 'center' }}>
-            <Link 
-              component={RouterLink} 
+          <Typography variant="body2" sx={{ textAlign: "center" }}>
+            <Link
+              component={RouterLink}
               to="/forgot-password"
-              sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
-              <LockResetIcon sx={{ mr: 0.5, fontSize: '1rem' }} />
+              <LockResetIcon sx={{ mr: 0.5, fontSize: "1rem" }} />
               Forgot password?
             </Link>
           </Typography>
-          <Typography variant="body2" sx={{ textAlign: 'center', mt: 1 }}>
+          <Typography variant="body2" sx={{ textAlign: "center", mt: 1 }}>
             <Link
               component={RouterLink}
               to="/register"
@@ -301,7 +324,7 @@ const Login = () => {
           </Typography>
         </Box>
 
-        <Box sx={{ mt: 3, textAlign: 'center' }}>
+        <Box sx={{ mt: 3, textAlign: "center" }}>
           <Typography variant="caption" color="text.secondary">
             By logging in, you agree to our Terms of Service and Privacy Policy
           </Typography>

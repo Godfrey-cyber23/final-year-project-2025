@@ -190,7 +190,7 @@ export const authService = {
    */
   async getCurrentLecturer() {
     try {
-      const { data } = await api.get('/lecturer/me');
+      const { data } = await api.get('/api/lecturer/me');
       
       if (!data) {
         return {

@@ -11,6 +11,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [initialized, setInitialized] = useState(false);
+  const [lastActivity, setLastActivity] = useState(Date.now());
   const navigate = useNavigate();
   const location = useLocation();
   const { showToast } = useToast();
@@ -22,9 +23,12 @@ export const AuthProvider = ({ children }) => {
     "/reset-password",
     "/register",
     "/home",
-    "/dashboard",
     "/unauthorized",
+    "/verify-email",
   ];
+
+  // Idle timeout (30 minutes)
+  const IDLE_TIMEOUT = 30 * 60 * 1000;
 
   const handleAuthError = useCallback((err) => {
     const errorMsg = err.response?.data?.message || 
@@ -32,10 +36,11 @@ export const AuthProvider = ({ children }) => {
                     "Session expired. Please login again.";
     
     localStorage.removeItem("token");
+    sessionStorage.removeItem("sessionToken");
     setLecturer(null);
     setError(errorMsg);
 
-    if (showToast) showToast(errorMsg, 'error');
+    showToast?.(errorMsg, 'error');
 
     if (!publicRoutes.some(route => location.pathname.startsWith(route))) {
       navigate("/login", {
@@ -51,17 +56,24 @@ export const AuthProvider = ({ children }) => {
   const loadLecturer = useCallback(async (retryCount = 0) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("token") || sessionStorage.getItem("sessionToken");
       if (!token) throw new Error("No authentication token found");
 
       const response = await getCurrentLecturer();
       
+      if (!response?.data) {
+        throw new Error("Invalid user data received");
+      }
+
       setLecturer(response.data);
       setError(null);
+      setLastActivity(Date.now());
 
-      if (location.state?.from) {
-        navigate(location.state.from, { replace: true });
-      }
+      // Redirect to intended route after successful auth
+      const redirectPath = location.state?.from?.pathname || 
+                         (response.data.is_admin ? "/admin/dashboard" : "/dashboard");
+      navigate(redirectPath, { replace: true });
+
     } catch (err) {
       if (err.name === 'AbortError') return;
 
@@ -78,11 +90,44 @@ export const AuthProvider = ({ children }) => {
     }
   }, [navigate, location, handleAuthError]);
 
+  // Track user activity for idle timeout
+  useEffect(() => {
+    const activities = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+    const updateActivity = () => setLastActivity(Date.now());
+
+    activities.forEach(event => 
+      window.addEventListener(event, updateActivity)
+    );
+
+    return () => {
+      activities.forEach(event => 
+        window.removeEventListener(event, updateActivity)
+      );
+    };
+  }, []);
+
+  // Check idle timeout
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (lecturer && (Date.now() - lastActivity > IDLE_TIMEOUT)) {
+        logout({ message: "You were logged out due to inactivity" });
+      }
+    }, 60000); // Check every minute
+
+    return () => clearInterval(interval);
+  }, [lecturer, lastActivity]);
+
+  // Initialize auth state
   useEffect(() => {
     const controller = new AbortController();
     let isMounted = true;
 
     const initializeAuth = async () => {
+      if (publicRoutes.some(route => location.pathname.startsWith(route))) {
+        setInitialized(true);
+        setLoading(false);
+        return;
+      }
       await loadLecturer();
     };
 
@@ -92,18 +137,22 @@ export const AuthProvider = ({ children }) => {
       isMounted = false;
       controller.abort();
     };
-  }, [loadLecturer]);
+  }, [loadLecturer, location.pathname]);
 
-  const login = async (email, password, secret_key) => {
+  const login = async (email, password, secret_key, rememberMe = false) => {
     try {
       setLoading(true);
       const response = await loginApi(email, password, secret_key);
 
-      localStorage.setItem("token", response.token);
+      // Store token based on remember me preference
+      const storage = rememberMe ? localStorage : sessionStorage;
+      storage.setItem("token", response.token);
+      
       setLecturer(response.lecturer);
       setError(null);
+      setLastActivity(Date.now());
 
-      if (showToast) showToast("Login successful", 'success');
+      showToast?.("Login successful", 'success');
 
       return { success: true, lecturer: response.lecturer };
     } catch (err) {
@@ -112,7 +161,7 @@ export const AuthProvider = ({ children }) => {
                      "Login failed. Please check your credentials.";
       setError(errorMsg);
       
-      if (showToast) showToast(errorMsg, 'error');
+      showToast?.(errorMsg, 'error');
 
       return { success: false, error: errorMsg };
     } finally {
@@ -122,11 +171,12 @@ export const AuthProvider = ({ children }) => {
 
   const logout = useCallback((options = {}) => {
     localStorage.removeItem("token");
+    sessionStorage.removeItem("sessionToken");
     setLecturer(null);
     setError(null);
 
     const message = options.message || "You have been logged out";
-    if (showToast) showToast(message, 'info');
+    showToast?.(message, options.severity || 'info');
 
     navigate("/login", {
       state: {
@@ -141,11 +191,18 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       const response = await getCurrentLecturer();
+      if (!response?.data) {
+        throw new Error("Invalid user data received");
+      }
       setLecturer(response.data);
       setError(null);
+      setLastActivity(Date.now());
       return true;
     } catch (err) {
-      logout({ message: "Session expired. Please login again." });
+      logout({ 
+        message: "Session expired. Please login again.",
+        severity: 'error'
+      });
       return false;
     } finally {
       setLoading(false);
@@ -164,9 +221,11 @@ export const AuthProvider = ({ children }) => {
     logout,
     refreshAuth,
     setError,
+    lastActivity,
+    setLastActivity,
   };
 
-  if (!initialized) {
+  if (!initialized && !publicRoutes.some(route => location.pathname.startsWith(route))) {
     return <LoadingSpinner fullScreen />;
   }
 
