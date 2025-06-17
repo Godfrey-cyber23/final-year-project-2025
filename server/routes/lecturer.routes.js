@@ -5,7 +5,8 @@ import {
   updateExam,
   getMonitoringData,
   sendAlert,
-  generateExamReport
+  generateExamReport,
+  getCurrentLecturer
 } from '../controllers/lecturer.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 

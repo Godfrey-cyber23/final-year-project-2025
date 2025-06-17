@@ -3,6 +3,9 @@ import bcrypt from 'bcryptjs';
 import pool from '../config/database.js';
 import { sendResetEmail } from '../services/email.service.js';
 
+import 'dotenv/config'; // Add this if not already present
+console.log('JWT Reset Secret:', process.env.JWT_RESET_SECRET);
+
 const generateToken = (lecturerId, isAdmin) => {
   return jwt.sign(
     { 
@@ -197,33 +200,55 @@ export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
     
-    // Check if email exists
-    const [user] = await pool.query('SELECT lecturer_id FROM lecturers WHERE email = ?', [email]);
-    if (!user) {
-      return res.status(200).json({ 
+    // Validate input
+    if (!email || !email.trim()) {
+      return res.status(400).json({ 
         success: false,
-        message: 'If this email exists, a reset link has been sent'
+        message: 'Email is required',
+        error: 'VALIDATION_ERROR'
       });
     }
 
-    // Create token
-    const token = jwt.sign({ id: user.lecturer_id }, process.env.JWT_RESET_SECRET, { 
-      expiresIn: '1h' 
-    });
+    // Check if email exists
+    const [rows] = await pool.query(
+      'SELECT lecturer_id FROM lecturers WHERE email = ?', 
+      [email.trim()]
+    );
 
-    // Send email
-    await sendResetEmail(email, token);
+    // Only proceed if user exists (security: don't reveal if user doesn't exist)
+    if (rows.length > 0) {
+      const user = rows[0];
+      const token = jwt.sign(
+        { id: user.lecturer_id }, 
+        process.env.JWT_RESET_SECRET, 
+        { expiresIn: '1h' }
+      );
+      
+      await sendResetEmail(email, token);
+    }
 
-    return res.status(200).json({
+    // Always return success to prevent email enumeration
+    return res.status(200).json({ 
       success: true,
-      message: 'Reset link sent successfully'
+      message: 'If this email exists in our system, you will receive a reset link'
     });
 
   } catch (error) {
     console.error('Password reset error:', error);
-    return res.status(200).json({
+    
+    // Differentiate between JWT errors and other errors
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(500).json({
+        success: false,
+        message: 'Token generation failed',
+        error: 'JWT_ERROR'
+      });
+    }
+    
+    return res.status(500).json({
       success: false,
-      message: 'Error processing your request'
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -435,34 +460,102 @@ export const getLecturerCourses = async (req, res, next) => {
   }
 };
 
-// controllers/auth.controller.js
+
 export const getCurrentLecturer = async (req, res) => {
   try {
-    const lecturerId = req.user.id; // Assuming your auth middleware sets this
-    
+    // Validate user ID from authentication middleware
+    if (!req.user?.id) {
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized: Invalid user session'
+      });
+    }
+
+    const lecturerId = req.user.id;
+
+    // Execute query with parameterized values to prevent SQL injection
     const [rows] = await pool.query(
-      `SELECT lecturer_id, email, first_name, last_name, staff_id, department_id 
+      `SELECT 
+        lecturer_id, 
+        email, 
+        first_name, 
+        last_name, 
+        staff_id, 
+        department_id,
+        is_admin,
+        created_at,
+        last_login
        FROM lecturers 
-       WHERE lecturer_id = ?`,
+       WHERE lecturer_id = ? AND is_active = 1`, // Only return active lecturers
       [lecturerId]
     );
-    
+
+    // Handle case where lecturer not found
     if (rows.length === 0) {
       return res.status(404).json({
         success: false,
-        error: 'Lecturer not found'
+        error: 'Lecturer not found or account inactive'
       });
     }
+
+    const lecturer = rows[0];
+    
+    // Remove sensitive fields before sending response
+    delete lecturer.password_hash;
+    delete lecturer.reset_token;
+    delete lecturer.reset_token_expiry;
+
+    // Add additional useful information
+    const departmentInfo = await getDepartmentInfo(lecturer.department_id);
     
     res.json({
       success: true,
-      lecturer: rows[0]
+      lecturer: {
+        ...lecturer,
+        department_name: departmentInfo?.name || null,
+        permissions: await getUserPermissions(lecturer.lecturer_id)
+      },
+      meta: {
+        request_id: req.headers['x-request-id'],
+        timestamp: new Date().toISOString()
+      }
     });
+
   } catch (error) {
-    console.error('Get current lecturer error:', error);
-    res.status(500).json({
+    console.error('Get current lecturer error:', {
+      error: error.message,
+      stack: error.stack,
+      userId: req.user?.id,
+      endpoint: req.originalUrl
+    });
+
+    // Differentiate between database errors and other errors
+    const isDatabaseError = error.code && error.code.startsWith('ER_');
+    
+    res.status(isDatabaseError ? 503 : 500).json({
       success: false,
-      error: 'Internal server error'
+      error: isDatabaseError 
+        ? 'Service temporarily unavailable' 
+        : 'Internal server error',
+      reference_id: req.headers['x-request-id']
     });
   }
 };
+
+// Helper function to get department info
+async function getDepartmentInfo(departmentId) {
+  const [deptRows] = await pool.query(
+    `SELECT name FROM departments WHERE department_id = ?`,
+    [departmentId]
+  );
+  return deptRows[0];
+}
+
+// Helper function to get user permissions
+async function getUserPermissions(lecturerId) {
+  const [permRows] = await pool.query(
+    `SELECT permission_key FROM lecturer_permissions WHERE lecturer_id = ?`,
+    [lecturerId]
+  );
+  return permRows.map(row => row.permission_key);
+}

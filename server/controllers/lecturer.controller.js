@@ -119,3 +119,35 @@ export const generateExamReport = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getCurrentLecturer = async (req, res, next) => {
+  try {
+    // Get lecturer details from database
+    const [lecturer] = await pool.query(
+      `SELECT 
+        lecturer_id as id,
+        name,
+        email,
+        department,
+        contact_number as contact,
+        position,
+        created_at
+       FROM lecturers 
+       WHERE lecturer_id = ?`,
+      [req.user.id]  // Assuming authentication middleware sets req.user.id
+    );
+
+    if (!lecturer.length) {
+      return res.status(404).json({ error: 'Lecturer not found' });
+    }
+
+    // Return lecturer data
+    res.json({
+      ...lecturer[0],
+      // Add any additional computed fields if needed
+      role: 'lecturer'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
